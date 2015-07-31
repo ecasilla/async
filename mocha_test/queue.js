@@ -27,16 +27,46 @@ describe('queue', function(){
     it('should call the unsaturated callback if tasks length is less than concurrency minus buffer', function(done){
       var calls = [];
       var q = async.queue(function(task, cb) {
-        // nop
-        calls.push('process ' + task);
         async.setImmediate(cb);
       }, 10);
       q.unsaturated = function() {
        calls.push('unsaturated');
       };
       q.empty = function() {
-          expect(calls.indexOf('unsaturated')).to.be.above(-1);
+          expect(calls.length).to.equal(5)
           done();
+      };
+      q.push('foo0', function () {calls.push('foo0 cb');});
+      q.push('foo1', function () {calls.push('foo1 cb');});
+      q.push('foo2', function () {calls.push('foo2 cb');});
+      q.push('foo3', function () {calls.push('foo3 cb');});
+      q.push('foo4', function () {calls.push('foo4 cb');});
+    });
+    it('should call the unsaturated callback if the queue is not saturated after being saturated', function(done){
+      var calls = [];
+      var expectedArray = [ 'saturated',
+        'unsaturated',
+        'unsaturated',
+        'unsaturated',
+        'unsaturated',
+        'unsaturated' ]
+      var q = async.queue(function(task, cb) {
+        async.setImmediate(cb);
+      }, 1);
+      q.unsaturated = function() {
+       calls.push('unsaturated');
+      };
+      q.saturated = function() {
+       calls.push('saturated');
+       q.concurrency = 10;
+      };
+      q.empty = function() {
+        var saturated = calls.filter(function(value){
+          return value === 'saturated';
+j       });
+        expect(saturated.length).to.be.equal(1);
+        expect(calls).to.deep.equal(expectedArray);
+        done();
       };
       q.push('foo0', function () {calls.push('foo0 cb');});
       q.push('foo1', function () {calls.push('foo1 cb');});
