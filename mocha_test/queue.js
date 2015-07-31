@@ -13,6 +13,25 @@ describe('queue', function(){
       expect(q.buffer).to.equal(2.5);
       done();
     });
+    it('should invoke unsaturated() once your at the 25% buffer threshold', function(done){
+      var calls = [];
+      var q = async.queue(function(task, cb) {
+        // nop
+        calls.push('process ' + task);
+        async.setImmediate(cb);
+      }, 2);
+      q.unsaturated = function() {
+       // What the math expression works out to is 2 <= (2 - 2 / 4)
+       //or is 1 less than or equal to 1.5
+       expect(q.tasks.length).to.be.below(2);
+       expect(q.tasks.length).to.be.equal(1);
+       done();
+      };
+      q.push('foo0', function () {calls.push('foo0 cb');});
+      q.push('foo1', function () {calls.push('foo1 cb');});
+      q.push('foo2', function () {calls.push('foo2 cb');});
+      q.push('foo3', function () {calls.push('foo3 cb');});
+    });
     it('should allow a user to change the buffer property', function(done){
       var q = async.queue(function(task, cb) {
         // nop
